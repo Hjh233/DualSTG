@@ -47,7 +47,7 @@ def make_binary_models(
     input_dim_list, type='FNN', emb_dim=128, output_dim=1, hidden_dims=[512, 256],
     batch_norm=None, dropout=None, activation='relu',
     flatten=True, sigma=1.0, lam=0.1, top_sigma=1.0, top_lam=0.1, 
-    mus = None):
+    mus = None, zeta = 0):
     models = []
     num_clients = len(input_dim_list)
     if type == 'FNN':
@@ -59,7 +59,8 @@ def make_binary_models(
                 batch_norm=batch_norm,
                 dropout=dropout,
                 activation=activation,
-                flatten=flatten
+                flatten=flatten,
+                zeta=zeta
             )
             models.append(model)
         top_model = nn.Sequential(
@@ -77,7 +78,8 @@ def make_binary_models(
                     activation=activation,
                     flatten=flatten,
                     sigma=sigma,
-                    lam=lam)
+                    lam=lam,
+                    zeta=zeta)
                 models.append(model)
             else:
                 model = STGEmbModel(
@@ -90,7 +92,8 @@ def make_binary_models(
                     flatten=flatten,
                     sigma=sigma,
                     lam=lam, 
-                    mu=mus[i])
+                    mu=mus[i],
+                    zeta=zeta)
                 models.append(model)
                 
 
@@ -111,7 +114,8 @@ def make_binary_models(
                     btm_sigma=sigma,
                     btm_lam=lam, 
                     top_sigma=top_sigma,
-                    top_lam=top_lam)
+                    top_lam=top_lam,
+                    zeta=zeta)
                 models.append(model)
             else:
                 model = DualSTGModel(
@@ -126,7 +130,8 @@ def make_binary_models(
                     btm_lam=lam, 
                     top_sigma=top_sigma,
                     top_lam=top_lam, 
-                    mu=mus[i])
+                    mu=mus[i],
+                    zeta=zeta)
                 models.append(model)
 
         top_model = nn.Sequential(nn.Linear(num_clients*emb_dim, 32), nn.ReLU(True), nn.Linear(32, output_dim))
