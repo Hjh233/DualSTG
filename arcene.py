@@ -1,12 +1,16 @@
+import argparse
+import os
+
+import numpy as np
 from scipy.io import loadmat
 from scipy.sparse import issparse
-import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from Data import VFLDataset
-from torch.utils.data import DataLoader
-import VFL
 import torch
-import os
+from torch.utils.data import DataLoader
+
+from Data import VFLDataset
+import VFL
+
 DIR = "Data"
 
 file_name = 'arcene.mat'
@@ -33,38 +37,45 @@ output_dim = np.unique(y).size
 criterion = torch.nn.CrossEntropyLoss()
 
 
-gini_labels = dataset.gini_filter(0.5)
-feat_idx_list = dataset.get_feature_index_list()
 
-mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-models, top_model = VFL.make_binary_models(
-    input_dim_list=input_dim_list,
-    type="DualSTG",
-    emb_dim=8,
-    output_dim=output_dim,
-    hidden_dims=[8, 8],
-    activation="relu",
-    mus=mus, top_lam=0.8, lam=0.2)
-dual_stg_gini_history = VFL.train(
-    models,
-    top_model,
-    train_loader,
-    val_loader,
-    test_loader,
-    epochs=40,
-    optimizer='Adam',
-    criterion=criterion,
-    verbose=True,
-    save_mask_at=100000, freeze_top_till=0)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--zeta', type=float, required=True)
 
+    args = parser.parse_args()
 
-print(dual_stg_gini_history.tail())
+    zeta = args.zeta
 
+    gini_labels = dataset.gini_filter(0.5)
+    feat_idx_list = dataset.get_feature_index_list()
 
-dual_stg_gini_history.to_csv('DPLog/arcene_ldp_0.csv')
+    mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+    models, top_model = VFL.make_binary_models(
+        input_dim_list=input_dim_list,
+        type="DualSTG",
+        emb_dim=8,
+        output_dim=output_dim,
+        hidden_dims=[8, 8],
+        activation="relu",
+        mus=mus, top_lam=0.8, lam=0.2,
+        zeta=zeta)
 
+    dual_stg_gini_history = VFL.train(
+        models,
+        top_model,
+        train_loader,
+        val_loader,
+        test_loader,
+        epochs=500,
+        optimizer='Adam',
+        criterion=criterion,
+        verbose=True,
+        save_mask_at=100000, 
+        freeze_top_till=0)
 
+    print(dual_stg_gini_history.tail())
 
+    dual_stg_gini_history.to_csv('LDPLog/arcene_ldp_{}.csv'.format(zeta))
 
 
 

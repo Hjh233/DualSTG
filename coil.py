@@ -1,12 +1,16 @@
+import argparse
+import os
+
+import numpy as np
 from scipy.io import loadmat
 from scipy.sparse import issparse
-import numpy as np
 from sklearn.preprocessing import MinMaxScaler
-from Data import VFLDataset
-from torch.utils.data import DataLoader
-import VFL
 import torch
-import os
+from torch.utils.data import DataLoader
+
+from Data import VFLDataset
+import VFL
+
 DIR = "Data"
 
 
@@ -35,40 +39,44 @@ criterion = torch.nn.CrossEntropyLoss()
 print(output_dim)
 
 
-gini_labels = dataset.gini_filter(0.5)
-feat_idx_list = dataset.get_feature_index_list()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--zeta', type=float, required=True)
 
-mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-models, top_model = VFL.make_binary_models(
-    input_dim_list=input_dim_list,
-    type="DualSTG",
-    emb_dim=8,
-    output_dim=output_dim,
-    hidden_dims=[32, 16],
-    activation="relu",
-    mus=mus, top_lam=0.1, lam=0.1)
-dual_stg_gini_history = VFL.train(
-    models,
-    top_model,
-    train_loader,
-    val_loader,
-    test_loader,
-    epochs=200,
-    optimizer='Adam',
-    criterion=criterion,
-    verbose=True,
-    save_mask_at=100000, freeze_top_till=0)
+    args = parser.parse_args()
 
+    zeta = args.zeta
 
-print(dual_stg_gini_history.tail(5))
+    gini_labels = dataset.gini_filter(0.5)
+    feat_idx_list = dataset.get_feature_index_list()
 
-dual_stg_gini_history.to_csv('DPLog/coil_ldp_0.csv')
+    mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+    models, top_model = VFL.make_binary_models(
+        input_dim_list=input_dim_list,
+        type="DualSTG",
+        emb_dim=8,
+        output_dim=output_dim,
+        hidden_dims=[32, 16],
+        activation="relu",
+        mus=mus, top_lam=0.1, lam=0.1,
+        zeta=zeta)
 
+    dual_stg_gini_history = VFL.train(
+        models,
+        top_model,
+        train_loader,
+        val_loader,
+        test_loader,
+        epochs=500,
+        optimizer='Adam',
+        criterion=criterion,
+        verbose=True,
+        save_mask_at=100000, 
+        freeze_top_till=0)
 
+    print(dual_stg_gini_history.tail())
 
-
-
-
+    dual_stg_gini_history.to_csv('LDPLog/coil_ldp_{}.csv'.format(zeta))
 
 
 
