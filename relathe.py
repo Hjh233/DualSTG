@@ -26,7 +26,7 @@ y[np.where(y == 2)] = 1
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=2,
+                    num_clients=10,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.2)
@@ -41,49 +41,17 @@ relathe_zeta = np.array([0.1, 0.3, 0.5, 1.0, 2.0, 2.5, 3.0, 4.0, 5.0])
 btm_z_overlap = []
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--zeta', type=float, required=True)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--zeta', type=float, required=True)
 
-    # args = parser.parse_args()
+    args = parser.parse_args()
 
-    # zeta = args.zeta
-
-    # gini_labels = dataset.gini_filter(0.5)
-    # feat_idx_list = dataset.get_feature_index_list()
-
-    # mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-    # models, top_model = VFL.make_binary_models(
-    #     input_dim_list=input_dim_list,
-    #     type="DualSTG",
-    #     emb_dim=4,
-    #     output_dim=output_dim,
-    #     hidden_dims=[8, 8],
-    #     activation="relu",
-    #     mus=mus, top_lam=0.1, lam=0.1,
-    #     zeta=zeta)
-
-    # dual_stg_gini_history = VFL.train(
-    #     models,
-    #     top_model,
-    #     train_loader,
-    #     val_loader,
-    #     test_loader,
-    #     epochs=500,
-    #     optimizer='Adam',
-    #     criterion=criterion,
-    #     verbose=True,
-    #     save_mask_at=100000, 
-    #     freeze_top_till=0)
-
-    # print(dual_stg_gini_history.tail())
-
-    # dual_stg_gini_history.to_csv('LDPLog/relathe_ldp_{}.csv'.format(zeta))
+    zeta = args.zeta
 
     gini_labels = dataset.gini_filter(0.5)
     feat_idx_list = dataset.get_feature_index_list()
 
     mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-
     models, top_model = VFL.make_binary_models(
         input_dim_list=input_dim_list,
         type="DualSTG",
@@ -92,9 +60,9 @@ if __name__ == "__main__":
         hidden_dims=[8, 8],
         activation="relu",
         mus=mus, top_lam=0.1, lam=0.1,
-        zeta=0)
+        zeta=zeta)
 
-    _, bottom_z_list_baseline = VFL.train(
+    dual_stg_gini_history, _ = VFL.train(
         models,
         top_model,
         train_loader,
@@ -107,42 +75,74 @@ if __name__ == "__main__":
         save_mask_at=100000, 
         freeze_top_till=0)
 
-    for i in range(len(relathe_zeta)):
-        models, top_model = VFL.make_binary_models(
-            input_dim_list=input_dim_list,
-            type="DualSTG",
-            emb_dim=4,
-            output_dim=output_dim,
-            hidden_dims=[8, 8],
-            activation="relu",
-            mus=mus, top_lam=0.1, lam=0.1,
-            zeta=relathe_zeta[i])
+    print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history, bottom_z_list = VFL.train(
-            models,
-            top_model,
-            train_loader,
-            val_loader,
-            test_loader,
-            epochs=60,
-            optimizer='Adam',
-            criterion=criterion,
-            verbose=True,
-            save_mask_at=100000, 
-            freeze_top_till=0)
+    # dual_stg_gini_history.to_csv('LDPLog/relathe_ldp_{}.csv'.format(zeta))
+
+    # gini_labels = dataset.gini_filter(0.5)
+    # feat_idx_list = dataset.get_feature_index_list()
+
+    # mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+
+    # models, top_model = VFL.make_binary_models(
+    #     input_dim_list=input_dim_list,
+    #     type="DualSTG",
+    #     emb_dim=4,
+    #     output_dim=output_dim,
+    #     hidden_dims=[8, 8],
+    #     activation="relu",
+    #     mus=mus, top_lam=0.1, lam=0.1,
+    #     zeta=0)
+
+    # _, bottom_z_list_baseline = VFL.train(
+    #     models,
+    #     top_model,
+    #     train_loader,
+    #     val_loader,
+    #     test_loader,
+    #     epochs=60,
+    #     optimizer='Adam',
+    #     criterion=criterion,
+    #     verbose=True,
+    #     save_mask_at=100000, 
+    #     freeze_top_till=0)
+
+    # for i in range(len(relathe_zeta)):
+    #     models, top_model = VFL.make_binary_models(
+    #         input_dim_list=input_dim_list,
+    #         type="DualSTG",
+    #         emb_dim=4,
+    #         output_dim=output_dim,
+    #         hidden_dims=[8, 8],
+    #         activation="relu",
+    #         mus=mus, top_lam=0.1, lam=0.1,
+    #         zeta=relathe_zeta[i])
+
+    #     dual_stg_gini_history, bottom_z_list = VFL.train(
+    #         models,
+    #         top_model,
+    #         train_loader,
+    #         val_loader,
+    #         test_loader,
+    #         epochs=60,
+    #         optimizer='Adam',
+    #         criterion=criterion,
+    #         verbose=True,
+    #         save_mask_at=100000, 
+    #         freeze_top_till=0)
         
-        client_0_overlap = np.sum(np.int64(bottom_z_list_baseline[0]>0) * np.int64(bottom_z_list[0]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[0]>0))
-        client_1_overlap = np.sum(np.int64(bottom_z_list_baseline[1]>0) * np.int64(bottom_z_list[1]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[1]>0))
-        server_overlap = np.sum(np.int64(bottom_z_list_baseline[2]>0) * np.int64(bottom_z_list[2]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[2]>0))
+    #     client_0_overlap = np.sum(np.int64(bottom_z_list_baseline[0]>0) * np.int64(bottom_z_list[0]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[0]>0))
+    #     client_1_overlap = np.sum(np.int64(bottom_z_list_baseline[1]>0) * np.int64(bottom_z_list[1]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[1]>0))
+    #     server_overlap = np.sum(np.int64(bottom_z_list_baseline[2]>0) * np.int64(bottom_z_list[2]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[2]>0))
 
-        overlap_ratio = (client_0_overlap + client_1_overlap + server_overlap) / 3
+    #     overlap_ratio = (client_0_overlap + client_1_overlap + server_overlap) / 3
 
-        btm_z_overlap.append(overlap_ratio)
+    #     btm_z_overlap.append(overlap_ratio)
 
-    print(btm_z_overlap)
+    # print(btm_z_overlap)
 
-    round_overlap = [round(x, 3) for x in btm_z_overlap]
-    print(round_overlap)
+    # round_overlap = [round(x, 3) for x in btm_z_overlap]
+    # print(round_overlap)
 
 
 
