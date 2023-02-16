@@ -67,7 +67,7 @@ class FeatureSelector(nn.Module):
 class FNNModel(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dims,
         batch_norm=None, dropout=None, activation='relu',
-        flatten=True) -> None:
+        flatten=True, zeta = 0) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -76,7 +76,8 @@ class FNNModel(nn.Module):
             input_dim, output_dim=output_dim, 
             hidden_dims=hidden_dims, batch_norm=batch_norm,
             dropout=dropout, activation=activation,
-            flatten=flatten)   
+            flatten=flatten,
+            zeta = zeta)   
         
     def forward(self, x):
         return self.mlp(x)
@@ -86,14 +87,15 @@ class STGEmbModel(nn.Module):
     def __init__(self, input_dim, output_dim, hidden_dims, 
             sigma=1.0, lam=0.1, mu=0,
             batch_norm=None, dropout=None, activation='relu',
-            flatten=True) -> None:
+            flatten=True, zeta = 0) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_dims = hidden_dims
         self.mlp = MLPLayer(input_dim, output_dim, hidden_dims, 
             batch_norm=batch_norm, dropout=dropout, activation=activation,
-            flatten=flatten)
+            flatten=flatten,
+            zeta = zeta)
         self.fs = FeatureSelector(input_dim, sigma, mu)
         self.reg = self.fs.regularizer
         self.lam = lam
@@ -130,14 +132,15 @@ class DualSTGModel(nn.Module):
             btm_sigma=1.0, btm_lam=0.1, mu=0, 
             top_sigma=1.0, top_lam=0.1, 
             batch_norm=None, dropout=None, activation='relu',
-            flatten=True) -> None:
+            flatten=True, zeta = 0) -> None:
         super().__init__()
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.hidden_dims = hidden_dims
         self.mlp = MLPLayer(input_dim, output_dim, hidden_dims, 
             batch_norm=batch_norm, dropout=dropout, activation=activation,
-            flatten=flatten)
+            flatten=flatten,
+            zeta = zeta)
         self.btm_fs = FeatureSelector(input_dim, btm_sigma, mu)
         self.btm_reg = self.btm_fs.regularizer
         self.btm_lam = btm_lam
