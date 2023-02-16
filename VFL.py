@@ -164,10 +164,14 @@ def visualize_gate(z_list):
     return heatmap
 
 
+import random
 
-
-
-
+def setup_seed(seed):
+     torch.manual_seed(seed)
+     torch.cuda.manual_seed_all(seed)
+     np.random.seed(seed)
+     random.seed(seed)
+     torch.backends.cudnn.deterministic = True
 
 
 
@@ -178,12 +182,15 @@ def train(
     criterion=nn.CrossEntropyLoss(),
     optimizer ='Adam', lr = 1e-2,
     epochs=100, freeze_btm_till=0, freeze_top_till=20,
-    verbose=True, save_dir='Checkpoints/model.pt',
+    verbose=True, 
+    models_save_dir='Checkpoints/models.pt',
+    top_model_save_dir='Checkpoints/top_model.pt',
     log_dir='Logs/log.csv',
     save_mask_at=20, mask_dir='Mask/',
     early_stopping=False, patience=20,
     noise_label=None, device='cpu'):
 
+    setup_seed(37)
 
     history = []
     column_names = []
@@ -221,8 +228,6 @@ def train(
             optimizer = torch.optim.Adam(
                 parameters, lr=lr) 
            
-        
-        
         elif optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 parameters, lr=lr)
@@ -286,7 +291,6 @@ def train(
                 val_acc += accuracy_score(data_y.cpu().numpy(), y_pred.detach().cpu().numpy(),)
 
 
-
         ##################################
         ########## Test ##################
         ##################################
@@ -310,14 +314,12 @@ def train(
                 test_acc += accuracy_score(data_y.cpu().numpy(), y_pred.detach().cpu().numpy(),)
 
 
-
         ##################################
         ###### Save model ################
         ##################################
         test_acc = test_acc / len(test_loader)
         train_acc = train_acc / len(train_loader)
         val_acc = val_acc / len(val_loader)
-
 
         if early_stopping:
             if val_acc > best_acc:
@@ -332,15 +334,18 @@ def train(
         
         if val_acc > best_acc:
             best_acc = val_acc
-            # torch.save(models, save_dir)
+            # torch.save(models, models_save_dir)
+            torch.save({
+            'model_0_state_dict': models[0].state_dict(),
+            'model_1_state_dict': models[1].state_dict(),
+            'model_2_state_dict': models[2].state_dict()}, models_save_dir)
+            torch.save(top_model.state_dict(), top_model_save_dir)
 
         ##################################
         ###### Logging ###################
         ##################################
     
 
-
-        
         if isinstance(models[0], FNNModel):
             if verbose:    
                 print("Epoch: {}, Train Loss: {:.4f}, Train Acc: {:.4f}, Val Acc {:.4f}, Test Acc: {:.4f}, Best Acc: {:.4f}".format(
@@ -349,6 +354,7 @@ def train(
             column_names = ['train_loss', 'train_acc', 'val_acc', 'test_acc']
             
         elif isinstance(models[0], STGEmbModel):
+            btm_z_list = []
             z_list = []
             num_feats = []
             for model in models:
@@ -394,11 +400,7 @@ def train(
                         e, train_loss, train_acc, val_acc, test_acc, best_acc, num_feats))
                 history.append([train_loss, train_acc, val_acc, test_acc, num_feats])
                 column_names = ['train_loss', 'train_acc', 'val_acc', 'test_acc', 'num_feats']
-                
-
-
-
-            
+                 
 
         elif isinstance(models[0], DualSTGModel):
             top_z_list = []
@@ -454,16 +456,49 @@ def train(
                 history.append([train_loss, train_acc, val_acc, test_acc, num_feats, num_emb])
                 column_names = ['train_loss', 'train_acc', 'val_acc', 'test_acc', 'num_feats', 'num_emb']
                 
-
-
-                
+ 
     history = pd.DataFrame(
         history, columns=column_names)
     # history.to_csv(log_dir)
-    return history
+    return history, btm_z_list
 
             
-            
+
+def inference(
+    models, top_model,
+    test_loader,
+    device='cpu'        
+    ):
+
+    import time
+
+    map(lambda m: m.eval(), models)
+    top_model.eval()
+    test_acc=0
+    with torch.no_grad():
+        begin = time.time()
+        for items, data_y in test_loader:
+            assert len(items) == len(models)
+            embs = []
+            # data_y = data_y.float().to(device).view(-1, 1)
+            data_y = data_y.flatten().long().to(device)
+            for i, item in enumerate(items):
+                data_x = item 
+                data_x = data_x.float().to(device)
+                emb = models[i](data_x)
+                embs.append(emb)
+            embs = torch.cat(embs, dim=1)
+            pred = top_model(embs)
+            y_pred = torch.max(pred, 1)[1]
+            test_acc += accuracy_score(data_y.cpu().numpy(), y_pred.detach().cpu().numpy(),)
+
+        end = time.time()
+
+    test_acc = test_acc / len(test_loader)
+
+    print('Total time consumed in inference stage is:', end - begin)
+
+
 
 
 if __name__ == '__main__':
