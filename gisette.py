@@ -41,6 +41,67 @@ btm_z_overlap = []
 
 
 if __name__ == "__main__":
+    # STG Training Stage
+    mus = None
+
+    models, top_model = VFL.make_binary_models(
+        input_dim_list=input_dim_list,
+        type="STG",
+        emb_dim=8,
+        output_dim=output_dim,
+        hidden_dims=[32, 16],
+        activation="relu",
+        mus=mus, lam=0.1,
+        zeta=0)
+
+    original_gate_history, _ = VFL.train(
+        models,
+        top_model,
+        train_loader,
+        val_loader,
+        test_loader,
+        epochs=40,
+        optimizer='Adam',
+        criterion=criterion,
+        verbose=True,
+        models_save_dir='Checkpoints/gisette_stg_models.pt',
+        top_model_save_dir='Checkpoints/gisette_stg_top_model.pt',
+        save_mask_at=100000, 
+        freeze_top_till=0)
+
+    # print(original_gate_history)
+    print(original_gate_history.tail())
+
+    original_gate_history.to_csv('LDPLog/gisette_original_gate.csv')
+
+    mus = None
+
+    models, top_model = VFL.make_binary_models(
+        input_dim_list=input_dim_list,
+        type="STG",
+        emb_dim=8,
+        output_dim=output_dim,
+        hidden_dims=[32, 16],
+        activation="relu",
+        mus=mus, lam=0.1,
+        zeta=0)
+    
+    models_path = 'Checkpoints/gisette_stg_models.pt'
+    top_model_path = 'Checkpoints/gisette_stg_top_model.pt'
+
+    models_checkpoint = torch.load(models_path)
+
+    models[0].load_state_dict(models_checkpoint['model_0_state_dict'])
+    models[1].load_state_dict(models_checkpoint['model_1_state_dict'])
+    models[2].load_state_dict(models_checkpoint['model_2_state_dict'])
+
+    # models.load_state_dict(torch.load(models_path))
+    top_model.load_state_dict(torch.load(top_model_path))
+
+    VFL.inference(models, top_model, test_loader)
+
+    # DualSTG Training Phase
+
     # parser = argparse.ArgumentParser()
     # parser.add_argument('--zeta', type=float, required=True)
 
@@ -48,41 +109,10 @@ if __name__ == "__main__":
 
     # zeta = args.zeta
 
-    # gini_labels = dataset.gini_filter(0.5)
-    # feat_idx_list = dataset.get_feature_index_list()
-
-    # mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-    # models, top_model = VFL.make_binary_models(
-    #     input_dim_list=input_dim_list,
-    #     type="DualSTG",
-    #     emb_dim=8,
-    #     output_dim=output_dim,
-    #     hidden_dims=[32, 16],
-    #     activation="relu",
-    #     mus=mus, top_lam=0.1, lam=0.1,
-    #     zeta=zeta)
-
-    # dual_stg_gini_history = VFL.train(
-    #     models,
-    #     top_model,
-    #     train_loader,
-    #     val_loader,
-    #     test_loader,
-    #     epochs=500,
-    #     optimizer='Adam',
-    #     criterion=criterion,
-    #     verbose=True,
-    #     save_mask_at=100000, 
-    #     freeze_top_till=0)
-
-    # print(dual_stg_gini_history.tail())
-
-    # dual_stg_gini_history.to_csv('LDPLog/gisette_ldp_{}.csv'.format(zeta))
     gini_labels = dataset.gini_filter(0.5)
     feat_idx_list = dataset.get_feature_index_list()
 
     mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-
     models, top_model = VFL.make_binary_models(
         input_dim_list=input_dim_list,
         type="DualSTG",
@@ -93,7 +123,7 @@ if __name__ == "__main__":
         mus=mus, top_lam=0.1, lam=0.1,
         zeta=0)
 
-    _, bottom_z_list_baseline = VFL.train(
+    dual_stg_gini_history, _ = VFL.train(
         models,
         top_model,
         train_loader,
@@ -103,46 +133,43 @@ if __name__ == "__main__":
         optimizer='Adam',
         criterion=criterion,
         verbose=True,
+        models_save_dir='Checkpoints/gisette_dualstg_models.pt',
+        top_model_save_dir='Checkpoints/gisette_dualstg_top_model.pt',
         save_mask_at=100000, 
         freeze_top_till=0)
 
-    for i in range(len(gisette_zeta)):
-        models, top_model = VFL.make_binary_models(
-            input_dim_list=input_dim_list,
-            type="DualSTG",
-            emb_dim=8,
-            output_dim=output_dim,
-            hidden_dims=[32, 16],
-            activation="relu",
-            mus=mus, top_lam=0.1, lam=0.1,
-            zeta=gisette_zeta[i])
+    print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history, bottom_z_list = VFL.train(
-            models,
-            top_model,
-            train_loader,
-            val_loader,
-            test_loader,
-            epochs=40,
-            optimizer='Adam',
-            criterion=criterion,
-            verbose=True,
-            save_mask_at=100000, 
-            freeze_top_till=0)
-        
-        client_0_overlap = np.sum(np.int64(bottom_z_list_baseline[0]>0) * np.int64(bottom_z_list[0]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[0]>0))
-        client_1_overlap = np.sum(np.int64(bottom_z_list_baseline[1]>0) * np.int64(bottom_z_list[1]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[1]>0))
-        server_overlap = np.sum(np.int64(bottom_z_list_baseline[2]>0) * np.int64(bottom_z_list[2]>0)) / np.count_nonzero(np.int64(bottom_z_list_baseline[2]>0))
+    # dual_stg_gini_history.to_csv('LDPLog/gisette_ldp_{}.csv'.format(zeta))
 
-        overlap_ratio = (client_0_overlap + client_1_overlap + server_overlap) / 3
+   
+    # DualSTG Inference Phase
+    
+    gini_labels = dataset.gini_filter(0.5)
+    feat_idx_list = dataset.get_feature_index_list()
 
-        btm_z_overlap.append(overlap_ratio)
-
-    print(btm_z_overlap)
-
-    round_overlap = [round(x, 3) for x in btm_z_overlap]
-    print(round_overlap)
+    mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+    models, top_model = VFL.make_binary_models(
+        input_dim_list=input_dim_list,
+        type="DualSTG",
+        emb_dim=8,
+        output_dim=output_dim,
+        hidden_dims=[32, 16],
+        activation="relu",
+        mus=mus, top_lam=0.1, lam=0.1,
+        zeta=0)
+    
+    models_path = 'Checkpoints/gisette_dualstg_models.pt'
+    top_model_path = 'Checkpoints/gisette_dualstg_top_model.pt'
 
 
+    models_checkpoint = torch.load(models_path)
 
+    models[0].load_state_dict(models_checkpoint['model_0_state_dict'])
+    models[1].load_state_dict(models_checkpoint['model_1_state_dict'])
+    models[2].load_state_dict(models_checkpoint['model_2_state_dict'])
 
+    # models.load_state_dict(torch.load(models_path))
+    top_model.load_state_dict(torch.load(top_model_path))
+
+    VFL.inference(models, top_model, test_loader)
