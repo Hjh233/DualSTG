@@ -25,7 +25,7 @@ y[np.where(y == -1)] = 0
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=99,
+                    num_clients=9,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.5)
@@ -41,13 +41,7 @@ btm_z_overlap = []
 
 
 if __name__ == "__main__":
-    # DualSTG Training Phase
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--zeta', type=float, required=True)
-
-    # args = parser.parse_args()
-
-    # zeta = args.zeta
+    
     for i in range(5):
 
         gini_labels = dataset.gini_filter(0.5)
@@ -82,6 +76,6 @@ if __name__ == "__main__":
         # print(dual_stg_gini_history)
         print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history.to_csv('Response/Review2/arcene_100clients_{}.csv'.format(i))
+        dual_stg_gini_history.to_csv('Response/Review1/All_initialized/arcene_{}.csv'.format(i))
 
 

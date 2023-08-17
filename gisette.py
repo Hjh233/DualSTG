@@ -25,7 +25,7 @@ y[np.where(y == -1)] = 0
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=99,
+                    num_clients=9,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.3)
@@ -68,12 +68,11 @@ if __name__ == "__main__":
             criterion=criterion,
             verbose=True,
             models_save_dir='Checkpoints/gisette_dualstg_models.pt',
-            top_model_save_dir='Checkpoints/gisette_dualstg_top_model.pt',
+            top_model_save_dir='Checkpoints/gisette_dualstg_top_model.pt',        
             save_mask_at=100000, 
             freeze_top_till=0)
 
         # print(dual_stg_gini_history)
         print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history.to_csv('Response/Review2/gisette_100clients_{}.csv'.format(i))
-   
+        dual_stg_gini_history.to_csv('Response/Review1/All_initialized/gisette_{}.csv'.format(i))

@@ -27,7 +27,7 @@ y[np.where(y == 2)] = 1
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=99,
+                    num_clients=9,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.2)
@@ -76,6 +76,6 @@ if __name__ == "__main__":
         # print(dual_stg_gini_history)
         print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history.to_csv('Response/Review2/basehock_100clients_{}.csv'.format(i))
+        dual_stg_gini_history.to_csv('Response/Review1/All_initialized/basehock_{}.csv'.format(i))
 
    
