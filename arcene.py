@@ -25,7 +25,7 @@ y[np.where(y == -1)] = 0
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=2,
+                    num_clients=99,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.5)
@@ -41,68 +41,6 @@ btm_z_overlap = []
 
 
 if __name__ == "__main__":
-    # STG Training Phase
-    # mus = None
-
-    # models, top_model = VFL.make_binary_models(
-    #     input_dim_list=input_dim_list,
-    #     type="STG",
-    #     emb_dim=8,
-    #     output_dim=output_dim,
-    #     hidden_dims=[8, 8],
-    #     activation="relu",
-    #     mus=mus, lam=0.2,
-    #     zeta=0)
-
-    # original_gate_history, _ = VFL.train(
-    #     models,
-    #     top_model,
-    #     train_loader,
-    #     val_loader,
-    #     test_loader,
-    #     epochs=80,
-    #     optimizer='Adam',
-    #     criterion=criterion,
-    #     verbose=True,
-    #     models_save_dir='Checkpoints/arcene_stg_models.pt',
-    #     top_model_save_dir='Checkpoints/arcene_stg_top_model.pt',
-    #     save_mask_at=100000, 
-    #     freeze_top_till=0)
-
-    # # print(original_gate_history)
-    # print(original_gate_history.tail())
-
-    # original_gate_history.to_csv('LDPLog/arcene_original_gate.csv')
-
-
-    # STG Inference Phase
-    # mus = None
-
-    # models, top_model = VFL.make_binary_models(
-    #     input_dim_list=input_dim_list,
-    #     type="STG",
-    #     emb_dim=8,
-    #     output_dim=output_dim,
-    #     hidden_dims=[8, 8],
-    #     activation="relu",
-    #     mus=mus, lam=0.2,
-    #     zeta=0)
-    
-    # models_path = 'Checkpoints/arcene_stg_models.pt'
-    # top_model_path = 'Checkpoints/arcene_stg_top_model.pt'
-
-    # models_checkpoint = torch.load(models_path)
-
-    # models[0].load_state_dict(models_checkpoint['model_0_state_dict'])
-    # models[1].load_state_dict(models_checkpoint['model_1_state_dict'])
-    # models[2].load_state_dict(models_checkpoint['model_2_state_dict'])
-
-    # # models.load_state_dict(torch.load(models_path))
-    # top_model.load_state_dict(torch.load(top_model_path))
-
-    # VFL.inference(models, top_model, test_loader)
-
-
     # DualSTG Training Phase
     # parser = argparse.ArgumentParser()
     # parser.add_argument('--zeta', type=float, required=True)
@@ -110,68 +48,40 @@ if __name__ == "__main__":
     # args = parser.parse_args()
 
     # zeta = args.zeta
+    for i in range(5):
 
-    # gini_labels = dataset.gini_filter(0.5)
-    # feat_idx_list = dataset.get_feature_index_list()
+        gini_labels = dataset.gini_filter(0.5)
+        feat_idx_list = dataset.get_feature_index_list()
 
-    # mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-    # models, top_model = VFL.make_binary_models(
-    #     input_dim_list=input_dim_list,
-    #     type="DualSTG",
-    #     emb_dim=8,
-    #     output_dim=output_dim,
-    #     hidden_dims=[8, 8],
-    #     activation="relu",
-    #     mus=mus, top_lam=0.8, lam=0.2,
-    #     zeta=0)
+        mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+        models, top_model = VFL.make_binary_models(
+            input_dim_list=input_dim_list,
+            type="DualSTG",
+            emb_dim=8,
+            output_dim=output_dim,
+            hidden_dims=[8, 8],
+            activation="relu",
+            mus=mus, top_lam=0.8, lam=0.2,
+            zeta=0)
 
-    # dual_stg_gini_history, _ = VFL.train(
-    #     models,
-    #     top_model,
-    #     train_loader,
-    #     val_loader,
-    #     test_loader,
-    #     epochs=80,
-    #     optimizer='Adam',
-    #     criterion=criterion,
-    #     verbose=True,
-    #     models_save_dir='Checkpoints/arcene_dualstg_models.pt',
-    #     top_model_save_dir='Checkpoints/arcene_dualstg_top_model.pt',        
-    #     save_mask_at=100000, 
-    #     freeze_top_till=0)
+        dual_stg_gini_history, _ = VFL.train(
+            models,
+            top_model,
+            train_loader,
+            val_loader,
+            test_loader,
+            epochs=80,
+            optimizer='Adam',
+            criterion=criterion,
+            verbose=True,
+            models_save_dir='Checkpoints/arcene_dualstg_models.pt',
+            top_model_save_dir='Checkpoints/arcene_dualstg_top_model.pt',        
+            save_mask_at=100000, 
+            freeze_top_till=0)
 
-    # # print(dual_stg_gini_history)
-    # print(dual_stg_gini_history.tail())
+        # print(dual_stg_gini_history)
+        print(dual_stg_gini_history.tail())
 
-    # # dual_stg_gini_history.to_csv('LDPLog/relathe_ldp_{}.csv'.format(zeta))
+        dual_stg_gini_history.to_csv('Response/Review2/arcene_100clients_{}.csv'.format(i))
 
-    # DualSTG Inference Phase
-    gini_labels = dataset.gini_filter(0.5)
-    feat_idx_list = dataset.get_feature_index_list()
-
-    mus = VFL.initialize_mu(gini_labels, feat_idx_list)
-    models, top_model = VFL.make_binary_models(
-        input_dim_list=input_dim_list,
-        type="DualSTG",
-        emb_dim=8,
-        output_dim=output_dim,
-        hidden_dims=[8, 8],
-        activation="relu",
-        mus=mus, top_lam=0.8, lam=0.2,
-        zeta=0)
-    
-    models_path = 'Checkpoints/arcene_dualstg_models.pt'
-    top_model_path = 'Checkpoints/arcene_dualstg_top_model.pt'
-
-
-    models_checkpoint = torch.load(models_path)
-
-    models[0].load_state_dict(models_checkpoint['model_0_state_dict'])
-    models[1].load_state_dict(models_checkpoint['model_1_state_dict'])
-    models[2].load_state_dict(models_checkpoint['model_2_state_dict'])
-
-    # models.load_state_dict(torch.load(models_path))
-    top_model.load_state_dict(torch.load(top_model_path))
-
-    VFL.inference(models, top_model, test_loader)
 
