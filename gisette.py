@@ -43,8 +43,22 @@ btm_z_overlap = []
 if __name__ == "__main__":
     for i in range(5):
 
-        gini_labels = dataset.gini_filter(0.5)
         feat_idx_list = dataset.get_feature_index_list()
+
+        np.random.seed(i)
+        not_init_clients = np.random.choice(len(feat_idx_list), int(0.5 * len(feat_idx_list)), replace=False).tolist()
+
+        count = 0
+
+        for item in not_init_clients:
+            if count == 0:
+                not_init_features = (feat_idx_list)[item]
+                print(not_init_features)
+            else:
+                not_init_features = np.concatenate((not_init_features, (feat_idx_list)[item]), axis=0)
+            count += 1
+
+        gini_labels = dataset.gini_filter(0.5, not_init_features)
 
         mus = VFL.initialize_mu(gini_labels, feat_idx_list)
         models, top_model = VFL.make_binary_models(
@@ -75,4 +89,4 @@ if __name__ == "__main__":
         # print(dual_stg_gini_history)
         print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history.to_csv('Response/Review1/All_initialized/gisette_{}.csv'.format(i))
+        dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/gisette_{}.csv'.format(i))
