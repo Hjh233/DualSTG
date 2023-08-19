@@ -460,7 +460,10 @@ def train(
     history = pd.DataFrame(
         history, columns=column_names)
     # history.to_csv(log_dir)
-    return history, btm_z_list
+    if isinstance(models[0], FNNModel):
+        return history
+    else:
+        return history, btm_z_list
 
             
 
@@ -478,6 +481,7 @@ def inference(
     with torch.no_grad():
         begin = time.time()
         for items, data_y in test_loader:
+            count = 0
             assert len(items) == len(models)
             embs = []
             # data_y = data_y.float().to(device).view(-1, 1)
@@ -492,11 +496,22 @@ def inference(
             y_pred = torch.max(pred, 1)[1]
             test_acc += accuracy_score(data_y.cpu().numpy(), y_pred.detach().cpu().numpy(),)
 
+            if count == 0:
+                labels = data_y.cpu().numpy()
+                preds = y_pred.detach().cpu().numpy()
+            else:
+                labels = np.concatenate((labels, data_y.cpu().numpy()), axis=0)
+                preds = np.concatenate((preds, y_pred.detach().cpu().numpy()), axis=0)
+
+            count += 1
+
         end = time.time()
 
     test_acc = test_acc / len(test_loader)
 
     print('Total time consumed in inference stage is:', end - begin)
+
+    return labels, preds
 
 
 
