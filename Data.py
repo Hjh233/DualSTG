@@ -137,13 +137,18 @@ class VFLDataset(Dataset):
         return self.X, self.y
 
 
-    def gini_filter(self, gini_portion, not_init_features=[]):
+    def gini_filter(self, gini_portion, not_init_features=[], sample_proportion=1.0, random_seed=0):
         X_train = torch.tensor(self.X_train)
         y_train =  torch.tensor(self.y_train, dtype=torch.int64)
         if len(not_init_features) == 0:
             pass
         else:
             X_train[:, not_init_features] = torch.zeros_like(X_train[:, not_init_features])
+
+        total_samples = X_train.shape[0]
+        np.random.seed(random_seed)
+        sampled_instances = np.random.choice(total_samples, int(total_samples * sample_proportion), replace=False)
+        X_train[sampled_instances, :] = torch.zeros_like(X_train[sampled_instances, :])
 
         gini_score = gini_score_fast_old(X_train, y_train)
 
