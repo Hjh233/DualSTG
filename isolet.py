@@ -23,7 +23,7 @@ y = y.flatten()
 print(file_name, X.shape, y.shape)
 y = y-1
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=0,
+                    num_clients=9,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.3)
@@ -42,22 +42,11 @@ if __name__ == "__main__":
 
         feat_idx_list = dataset.get_feature_index_list()
 
-        np.random.seed(i)
-        not_init_clients = np.random.choice(len(feat_idx_list), int(0.5 * len(feat_idx_list)), replace=False).tolist()
+        lasso_score = torch.load('Response/Review1/Lasso/isolet_{}.pt'.format(i))
 
-        count = 0
+        lasso_labels = dataset.lasso_filter(lasso_score, 0.5)
 
-        for item in not_init_clients:
-            if count == 0:
-                not_init_features = (feat_idx_list)[item]
-                print(not_init_features)
-            else:
-                not_init_features = np.concatenate((not_init_features, (feat_idx_list)[item]), axis=0)
-            count += 1
-
-        gini_labels = dataset.gini_filter(0.5, not_init_features=[])
-
-        mus = VFL.initialize_mu(gini_labels, feat_idx_list)
+        mus = VFL.initialize_mu(lasso_labels, feat_idx_list)
         models, top_model = VFL.make_binary_models(
             input_dim_list=input_dim_list,
             type="DualSTG",
@@ -72,7 +61,7 @@ if __name__ == "__main__":
 
         begin = time.time()
 
-        dual_stg_gini_history, _, reg = VFL.train(
+        dual_stg_gini_history, _ = VFL.train(
             models,
             top_model,
             train_loader,
@@ -90,9 +79,7 @@ if __name__ == "__main__":
         end = time.time()
         print(end - begin)
 
-        torch.save(reg, 'Response/Review1/Lasso/isolet_{}.pt'.format(i))
-
         # # print(dual_stg_gini_history)
         # print(dual_stg_gini_history.tail())
 
-        # dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/isolet_{}.csv'.format(i))
+        dual_stg_gini_history.to_csv('Response/Review1/Lasso/isolet_{}.csv'.format(i))
