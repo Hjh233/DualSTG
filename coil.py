@@ -26,7 +26,7 @@ y = y-1
 scaler = MinMaxScaler()
 X = scaler.fit_transform(X)
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=9,
+                    num_clients=0,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.3)
@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 not_init_features = np.concatenate((not_init_features, (feat_idx_list)[item]), axis=0)
             count += 1
 
-        gini_labels = dataset.gini_filter(0.5, not_init_features)
+        gini_labels = dataset.gini_filter(0.5, not_init_features=[])
 
         mus = VFL.initialize_mu(gini_labels, feat_idx_list)
         models, top_model = VFL.make_binary_models(
@@ -72,7 +72,11 @@ if __name__ == "__main__":
             mus=mus, top_lam=0.1, lam=0.1,
             zeta=0)
 
-        dual_stg_gini_history, _ = VFL.train(
+        import time
+
+        begin = time.time()
+
+        dual_stg_gini_history, _, reg = VFL.train(
             models,
             top_model,
             train_loader,
@@ -85,12 +89,20 @@ if __name__ == "__main__":
             models_save_dir='Checkpoints/coil_dualstg_models.pt',
             top_model_save_dir='Checkpoints/coil_dualstg_top_model.pt',        
             save_mask_at=100000, 
-            freeze_top_till=0)
+            freeze_top_till=0,
+            lasso=True)
+        
+        end = time.time()
+        print(end - begin)
 
-        # print(dual_stg_gini_history)
-        print(dual_stg_gini_history.tail())
+        print(torch.argsort(-reg))
 
-        dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/coil_{}.csv'.format(i))
+        torch.save(reg, 'Response/Review1/Lasso/coil_{}.pt'.format(i))
+
+        # # print(dual_stg_gini_history)
+        # print(dual_stg_gini_history.tail())
+
+        # dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/coil_{}.csv'.format(i))
 
    
    

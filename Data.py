@@ -162,6 +162,21 @@ class VFLDataset(Dataset):
         gini_label[indices_left] = 1
         self.gini_label = gini_label
         return gini_label
+    
+
+
+    def lasso_filter(self, lasso_score, lasso_proportion=0.5):
+
+        indices = torch.argsort(-lasso_score)
+        lasso_label = np.zeros(indices.shape[0])
+        if isinstance(lasso_proportion, float):
+            indices_left = indices[:int(indices.shape[0]*lasso_proportion)]
+        else: 
+            indices_left = indices[:lasso_proportion]
+            
+        lasso_label[indices_left] = 1
+        self.gini_label = lasso_label
+        return lasso_label
 
 
     def get_feature_index_list(self):

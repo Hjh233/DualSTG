@@ -23,7 +23,7 @@ y = y.flatten()
 print(file_name, X.shape, y.shape)
 y = y-1
 dataset = VFLDataset(data_source=(X, y), 
-                    num_clients=9,
+                    num_clients=0,
                     gini_portion=None,
                     insert_noise=False,
                     test_size=0.3)
@@ -55,7 +55,7 @@ if __name__ == "__main__":
                 not_init_features = np.concatenate((not_init_features, (feat_idx_list)[item]), axis=0)
             count += 1
 
-        gini_labels = dataset.gini_filter(0.5, not_init_features)
+        gini_labels = dataset.gini_filter(0.5, not_init_features=[])
 
         mus = VFL.initialize_mu(gini_labels, feat_idx_list)
         models, top_model = VFL.make_binary_models(
@@ -68,7 +68,11 @@ if __name__ == "__main__":
             mus=mus, top_lam=0.1, lam=0.1,
             zeta=0)
 
-        dual_stg_gini_history, _ = VFL.train(
+        import time
+
+        begin = time.time()
+
+        dual_stg_gini_history, _, reg = VFL.train(
             models,
             top_model,
             train_loader,
@@ -82,8 +86,13 @@ if __name__ == "__main__":
             top_model_save_dir='Checkpoints/isolet_dualstg_top_model.pt',        
             save_mask_at=100000, 
             freeze_top_till=0)
+        
+        end = time.time()
+        print(end - begin)
 
-        # print(dual_stg_gini_history)
-        print(dual_stg_gini_history.tail())
+        torch.save(reg, 'Response/Review1/Lasso/isolet_{}.pt'.format(i))
 
-        dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/isolet_{}.csv'.format(i))
+        # # print(dual_stg_gini_history)
+        # print(dual_stg_gini_history.tail())
+
+        # dual_stg_gini_history.to_csv('Response/Review1/Half_initialized/isolet_{}.csv'.format(i))

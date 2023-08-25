@@ -42,7 +42,6 @@ def initialize_mu(gini_labels, feat_idx_list):
 
 
 
-
 def make_binary_models(
     input_dim_list, type='FNN', emb_dim=128, output_dim=1, hidden_dims=[512, 256],
     batch_norm=None, dropout=None, activation='relu',
@@ -140,15 +139,9 @@ def make_binary_models(
 
 
 
-
-
-
 def binary_acc(out, y):
     acc = accuracy_score(y, out>0.5)
     return acc
-
-
-
 
 
 
@@ -175,7 +168,6 @@ def setup_seed(seed):
 
 
 
-
 def train(
     models, top_model,
     train_loader, val_loader, test_loader,
@@ -188,7 +180,9 @@ def train(
     log_dir='Logs/log.csv',
     save_mask_at=20, mask_dir='Mask/',
     early_stopping=False, patience=20,
-    noise_label=None, device='cpu'):
+    noise_label=None, device='cpu',
+    l1_lambda = 0.0001,
+    lasso=False):
 
     setup_seed(37)
 
@@ -258,6 +252,14 @@ def train(
                 reg_loss_list = [model.get_reg_loss() for model in models]
                 reg_loss = torch.mean(torch.stack(reg_loss_list))
                 loss += reg_loss
+
+            l1_reg = torch.tensor(0.0)
+
+            for param in models[0].mlp.fc1.parameters():
+                l1_reg += torch.norm(param, p=1) 
+
+            if lasso == True:
+                loss = loss + l1_lambda * l1_reg
             
             loss.backward()
             optimizer.step()
@@ -335,11 +337,14 @@ def train(
         if val_acc > best_acc:
             best_acc = val_acc
             # torch.save(models, models_save_dir)
-            torch.save({
-            'model_0_state_dict': models[0].state_dict(),
-            'model_1_state_dict': models[1].state_dict(),
-            'model_2_state_dict': models[2].state_dict()}, models_save_dir)
-            torch.save(top_model.state_dict(), top_model_save_dir)
+            # torch.save({
+            # 'model_0_state_dict': models[0].state_dict(),
+            # 'model_1_state_dict': models[1].state_dict(),
+            # 'model_2_state_dict': models[2].state_dict()}, models_save_dir)
+            # torch.save(top_model.state_dict(), top_model_save_dir)
+            for param in models[0].mlp.fc1.parameters():
+                reg = torch.norm(param, p=1, dim=0)
+                break
 
         ##################################
         ###### Logging ###################
@@ -463,7 +468,7 @@ def train(
     if isinstance(models[0], FNNModel):
         return history
     else:
-        return history, btm_z_list
+        return history, btm_z_list, reg
 
             
 
