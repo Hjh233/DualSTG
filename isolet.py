@@ -38,15 +38,24 @@ isolet_zeta = np.array([0.1, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 10.0, 15.0])
 btm_z_overlap = []
 
 if __name__ == "__main__":
-    for i in range(5):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--sample_proportion', type=float, required=True)
 
+    args = parser.parse_args()
+
+    sample_proportion = args.sample_proportion
+
+    for i in range(5):
         feat_idx_list = dataset.get_feature_index_list()
 
-        lasso_score = torch.load('Response/Review1/Lasso/isolet_{}.pt'.format(i))
+        gini_labels = dataset.gini_filter(
+                              gini_portion=0.5, 
+                              not_init_features=[], 
+                              sample_proportion=sample_proportion, 
+                              random_seed=i
+        )
 
-        lasso_labels = dataset.lasso_filter(lasso_score, 0.5)
-
-        mus = VFL.initialize_mu(lasso_labels, feat_idx_list)
+        mus = VFL.initialize_mu(gini_labels, feat_idx_list)
         models, top_model = VFL.make_binary_models(
             input_dim_list=input_dim_list,
             type="DualSTG",
@@ -82,4 +91,4 @@ if __name__ == "__main__":
         # # print(dual_stg_gini_history)
         # print(dual_stg_gini_history.tail())
 
-        dual_stg_gini_history.to_csv('Response/Review1/Lasso/isolet_{}.csv'.format(i))
+        dual_stg_gini_history.to_csv('Response/Review1/GINI_sampling/isolet_{}_{}.csv'.format(int(100 * (1 - sample_proportion)), i))
