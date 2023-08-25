@@ -2,6 +2,7 @@ import argparse
 import os
 
 import numpy as np
+import pandas as pd
 from scipy.io import loadmat
 from scipy.sparse import issparse
 from sklearn.preprocessing import MinMaxScaler
@@ -90,6 +91,10 @@ if __name__ == "__main__":
             mus=mus, top_lam=0.1, lam=0.1,
             zeta=0)
 
+        import time
+
+        begin = time.time()
+
         dual_stg_gini_history, _ = VFL.train(
             models,
             top_model,
@@ -104,6 +109,9 @@ if __name__ == "__main__":
             top_model_save_dir='Response/Review3/Checkpoints/basehock_dualstg_top_model.pt',        
             save_mask_at=100000, 
             freeze_top_till=0)
+        
+        end = time.time()
+        print(end-begin)
 
         # print(dual_stg_gini_history)
         print(dual_stg_gini_history.tail())
@@ -137,5 +145,15 @@ if __name__ == "__main__":
     top_model.load_state_dict(torch.load(top_model_path))
 
     labels, preds = VFL.inference(models, top_model, test_loader)
+
+    results = pd.DataFrame(
+            {
+            "labels":labels.tolist(),
+            "preds": preds.tolist(), 
+            }
+            )
+    results.head()
+
+    results.to_csv('Response/Review3/basehock.csv')
 
     _plot_roc(labels, preds, 'Response/Review3/')

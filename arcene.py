@@ -2,6 +2,7 @@ import argparse
 import os
 
 import numpy as np
+import pandas as pd
 from scipy.io import loadmat
 from scipy.sparse import issparse
 from sklearn.preprocessing import MinMaxScaler
@@ -54,8 +55,8 @@ def _plot_roc(label, y_prob, file_dir):
     ax.set_ylabel("true positive rate", labelpad=5, loc="center")
     ax.set_title("ROC Curve")
 
-    # plt.show()
-    plt.savefig(f"{file_dir}/ROC_Curve_arcene.png")
+    plt.show()
+    # plt.savefig(f"{file_dir}/ROC_Curve_arcene.png")
     plt.close()
 
 
@@ -88,7 +89,6 @@ if __name__ == "__main__":
             activation="relu",
             mus=mus, top_lam=0.8, lam=0.2,
             zeta=0)
-
         dual_stg_gini_history, _ = VFL.train(
             models,
             top_model,
@@ -137,6 +137,14 @@ if __name__ == "__main__":
 
     labels, preds = VFL.inference(models, top_model, test_loader)
 
+    results = pd.DataFrame(
+            {
+            "labels":labels.tolist(),
+            "preds": preds.tolist(), 
+            }
+            )
+    results.head()
+
+    results.to_csv('Response/Review3/arcene.csv')
+
     _plot_roc(labels, preds, 'Response/Review3/')
-
-
